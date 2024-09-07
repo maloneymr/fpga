@@ -1,0 +1,160 @@
+import uart;
+import spi;
+
+socket Leds {
+    mosi led0 : Bit;
+    mosi led1 : Bit;
+    mosi led2 : Bit;
+}
+
+socket Mem {
+    mosi mem_valid : Bit;
+    mosi mem_instr : Bit;
+    miso mem_ready : Bit;
+
+    mosi mem_addr  : Word[32];
+    mosi mem_wdata : Word[32];
+    mosi mem_wstrb : Word[4];
+    miso mem_rdata : Word[32];
+}
+
+enum type Device width 8 {
+    spi  = 0b0000_0000;  // 0x00XX_XXXX  = SPI FLASH
+    uart = 0b1000_0000;  // 0x80XX_XXXX  = UART
+    leds = 0b0100_0000;
+    ram  = 0b0010_0000;
+    none = 0b1111_1111;
+}
+
+fn addr_to_device(addr : Word[32]) -> Device {
+    if addr[32..24]->any()->not() {
+        #spi
+    } else if addr[32..24] == word(#uart[Device]) {
+        #uart
+    } else if addr[32..24] == word(#leds[Device]) {
+        #leds
+    } else if addr[32..24] == word(#ram[Device]) {
+        #ram
+    } else {
+        #none
+    }
+}
+
+mod MemorySubsystem {
+    incoming clock : Clock;
+    incoming reset : Bit;
+
+    slave  socket mem of Mem;
+
+    master socket leds of Leds;
+    master socket spi of spi::Spi;
+    master socket uart of uart::Uart;
+
+    wire device : Device;
+    device := addr_to_device(mem.mem_addr);
+
+    wire is_write : Bit;
+    is_write := mem.mem_wstrb->any();
+
+    wire is_read : Bit;
+    is_read := is_write->not();
+
+    mod spi_flash of spi::SpiFlash;
+    spi_flash.clock := clock;
+    spi_flash.reset := reset;
+
+    spi :=: spi_flash.spi;
+
+    spi_flash.mem.read_enable := mem.mem_valid->and(is_read)->and(device == #spi[Device]);
+    spi_flash.mem.addr := mem.mem_addr;
+
+    mem.mem_rdata :=
+        match device {
+            #spi => spi_flash.mem.read_data;
+            #uart => 
+                if uart_controller.recv.valid {
+                    zext(uart_controller.recv.data)
+                } else {
+                    0
+                };
+            _ => 0;
+        };
+
+    mem.mem_ready :=
+        match device {
+            #spi => spi_flash.mem.read_data_valid;
+            #uart =>
+                if is_read {
+                    true
+                } else {
+                    uart_controller.send.ready
+                };
+            _ => true;
+        };
+
+    reg leds_reg : Word[3] on clock;
+    leds_reg <=
+        if reset {
+            0b111w3
+        } else if mem.mem_valid->and(is_write)->and(device == #leds[Device]) {
+            mem.mem_wdata[3..0]
+        } else {
+            leds_reg
+        };
+
+    leds.led0 := leds_reg[0];
+    leds.led1 := leds_reg[1];
+    leds.led2 := leds_reg[2];
+
+    mod uart_controller of uart::UartController;
+    uart_controller.clock := clock;
+    uart_controller.reset := reset;
+    uart_controller.send.data  := mem.mem_wdata[8..0];
+    uart_controller.send.valid := is_write->and(device == #uart[Device]);
+    uart_controller.recv.ready := is_read->and(device == #uart[Device]);
+    uart :=: uart_controller.uart;
+}
+
+ext mod SRam {
+    incoming clock : Clock;
+    incoming addr : Word[14];
+    incoming write_enable : Bit;
+    incoming write_mask : Word[4];
+    incoming data_inp : Word[16];
+    incoming data_out : Word[16];
+}
+
+mod Aasdf {
+    incoming clock : Clock;
+    incoming reset : Bit;
+/*
+    incoming addr : Word[13];
+    incoming read_enable : Bit;
+    incoming write_enable : Bit;
+    incoming write_mask : Word[4];
+    incoming data_inp : Word[16];
+    incoming data_out : Word[16];
+
+    outgoing ready : Bit;
+
+    reg phase : Word[1] on clock;
+    phase <= if reset {
+            0
+        } else if read_enable->or(write_enable) {
+            phase->inc()
+        } else {
+            phase
+        };
+
+    mod sram of SRam;
+    sram.clock := clock;
+
+    sram.addr := word(addr, phase);
+    sram.write_enable := write_enable;
+    sram.write_mask := write_mask;
+    sram.data_inp := data_inp;
+    sram.data_out := data_out;
+
+    ready := phase == 1;
+*/
+}
