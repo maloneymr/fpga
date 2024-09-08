@@ -62,7 +62,7 @@ mod Top {
     memory_subsystem.mem :=: core.mem;
     spi :=: memory_subsystem.spi;
 
-    mod edge of edge::Edge;
-    edge.clock := clock;
-    edge.inp := spi.di;
+    mod edge_detector of edge::Edge;
+    edge_detector.clock := clock;
+    edge_detector.inp := spi.di;
 }

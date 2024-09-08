@@ -10,8 +10,8 @@ module SRam(
     (
       .CLOCK(clock),
       .ADDRESS(addr),
-      .MASKWREN(write_mask),
       .WREN(write_enable),
+      .MASKWREN(write_mask),
       .DATAIN(data_inp),
       .DATAOUT(data_out),
       .CHIPSELECT(1'b1),

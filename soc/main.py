@@ -3,10 +3,10 @@ import time
 
 ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
 
-data = open('alice.txt').read()
-for c in data:
-    ser.write(c.encode())
-    time.sleep(0.2)
+#data = open('alice.txt').read()
+#for c in data:
+#    ser.write(c.encode())
+#    time.sleep(0.2)
 
 try:
     while True:
@@ -16,6 +16,8 @@ try:
             for i in range(0, len(hex_data), 32):  # 32 hex digits represent 16 bytes
                 row = hex_data[i:i + 32]  # Extract 32 hex digits (16 bytes)
                 print(' '.join(row[j:j + 2] for j in range(0, len(row), 2)))  # Format into pairs
+        else:
+            time.sleep(0.1)
 
 except KeyboardInterrupt:
     print()

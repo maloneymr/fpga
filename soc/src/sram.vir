@@ -1,59 +1,37 @@
-ext mod SRam {
-    incoming clock : Clock;
-    incoming addr : Word[14];
-    incoming write_enable : Bit;
-    incoming write_mask : Word[4];
-    incoming data_inp : Word[16];
-    outgoing data_out : Word[16];
-}
-
-union type RamState {
-    idle();
-    read();
-    write();
-    wait();
-}
-
 mod Ram {
     incoming clock : Clock;
     incoming reset : Bit;
     incoming addr : Word[14];
     incoming write_enable : Bit;
+    incoming read_enable : Bit;
     incoming write_mask : Word[4];
     incoming data_inp : Word[32];
     outgoing data_out : Word[32];
     outgoing ready : Bit;
 
-/*
-    reg state : RamState on clock;
+    reg is_reading : Bit on clock;
+    is_reading <=
+        if reset {
+            false
+        } else if state->eq(0)->and(read_enable) {
+            true
+        } else if state == 3 {
+            false
+        } else {
+            is_reading
+        };
+
+    reg state : Word[2] on clock;
     state <=
         if reset {
-            @idle()
+            0
+        } else if state->gt(0) {
+            state->inc()
+        } else if read_enable->or(write_enable) {
+            1
         } else {
-            match state {
-                @idle() =>
-                    if read_enable {
-                        @read()
-                    } else {
-                        @write()
-                    };
-                @read() => @wait();
-                @write() => @wait();
-                @wait() => 
-                    if read_enable {
-                        @read()
-                    } else if write_enable {
-                        @write()
-                    } else {
-                        @idle()
-                    };
-
-            }
+            state
         };
-        */
-
-    reg is_waiting : Bit on clock;
-    is_waiting <= if reset { false } else { is_waiting->not() };
 
     mod sram_hi of SRam;
     mod sram_lo of SRam;
@@ -63,8 +41,8 @@ mod Ram {
     sram_hi.write_mask := write_mask;
     sram_lo.write_mask := write_mask;
 
-    sram_hi.write_enable := write_enable;
-    sram_lo.write_enable := write_enable;
+    sram_hi.write_enable := reset->not()->and(write_enable)->and(state == 0);
+    sram_lo.write_enable := reset->not()->and(write_enable)->and(state == 0);
 
     sram_hi.addr := addr;
     sram_lo.addr := addr;
@@ -72,6 +50,21 @@ mod Ram {
     sram_hi.data_inp := data_inp[32..16];
     sram_lo.data_inp := data_inp[16..0];
 
-    data_out := word(sram_hi.data_out, sram_lo.data_out);
-    ready := is_waiting->not();
+    data_out :=
+        if is_reading->and(state == 3) {
+            word(sram_hi.data_out, sram_lo.data_out)
+        } else {
+            0
+        };
+
+    ready := state == 3;
+}
+
+ext mod SRam {
+    incoming clock : Clock;
+    incoming addr : Word[14];
+    incoming write_enable : Bit;
+    incoming write_mask : Word[4];
+    incoming data_inp : Word[16];
+    outgoing data_out : Word[16];
 }

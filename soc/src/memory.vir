@@ -3,6 +3,7 @@ import uart;
 import spi;
 import color;
 
+
 socket Mem {
     mosi mem_valid : Bit;
     mosi mem_instr : Bit;
@@ -16,9 +17,9 @@ socket Mem {
 
 enum type Device width 8 {
     spi  = 0b0000_0000;  // 0x00XX_XXXX  = SPI FLASH
-    uart = 0b1000_0000;  // 0x80XX_XXXX  = UART
-    leds = 0b0100_0000;
-    ram  = 0b0010_0000;
+    uart = 0b1000_0000;  // 0x80XX_XXXX  = UART 0bxxxxxxxx_xxxxxxxx_xxxxxxxx_datadata
+    leds = 0b0100_0000;  // 0x40XX_XXXX  = LEDS 0bxxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxbgr
+    ram  = 0b0010_0000;  // 0x20XX_XXXX  = RAM
     none = 0b1111_1111;
 }
 
@@ -74,6 +75,7 @@ mod MemorySubsystem {
                 } else {
                     0
                 };
+            #ram => ram.data_out;
             _ => 0;
         };
 
@@ -86,13 +88,14 @@ mod MemorySubsystem {
                 } else {
                     uart_controller.send.ready
                 };
+            #ram => ram.ready;
             _ => true;
         };
 
     reg leds_reg : Word[3] on clock;
     leds_reg <=
         if reset {
-            0b111w3
+            0b000w3
         } else if mem.mem_valid->and(is_write)->and(device == #leds[Device]) {
             mem.mem_wdata[3..0]
         } else {
@@ -122,4 +125,10 @@ mod MemorySubsystem {
     ram.write_mask := mem.mem_wstrb;
     ram.write_enable := mem.mem_valid->and(is_write);
     ram.read_enable := mem.mem_valid->and(is_read);
+
+//    leds := $color::Color {
+//        red   = mem.mem_valid->and(is_read)->and(mem.mem_instr->not()),
+//        green = mem.mem_valid->and(is_write)->and(mem.mem_instr->not()),
+//        blue  = false,
+//    };
 }
