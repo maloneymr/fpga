@@ -1,14 +1,4 @@
-mod Resetter {
+ext mod Resetter {
     incoming clock : Clock;
     outgoing out : Bit;
-
-    reg countdown : Word[5] on clock;
-    countdown <=
-        if countdown->eq(0b11111) {
-            countdown
-        } else {
-            countdown->inc()
-        };
-
-    out := countdown->lt(0b11111);
 }

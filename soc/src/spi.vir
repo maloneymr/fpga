@@ -156,3 +156,10 @@ ext mod ClockInverter {
     incoming enable : Bit;
     outgoing inv_clock : Clock;
 }
+
+ext mod SpiSlave {
+    incoming cs : Bit;
+    incoming clk : Bit;
+    incoming do : Bit;
+    outgoing di : Bit;
+}

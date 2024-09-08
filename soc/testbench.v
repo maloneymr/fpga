@@ -4,6 +4,7 @@ module Testbench();
     $dumpfile("build/out.vcd");
     $dumpvars(0, top);
     $dumpvars(0, counter);
+    $dumpvars(0, spi_slave);
   end
 
   reg clock = 1'b0;
@@ -27,14 +28,25 @@ module Testbench();
   reg valid = 0;
   reg [3:0] strb = 4'b0000;
 
-  MemorySubsystem top(
+  Top top(
     .clock(clock),
-    .reset(reset),
-    .mem__mem_valid(valid),
-    .mem__mem_instr(1'b0),
-    .mem__mem_addr(32'h20000000),
-    .mem__mem_wdata(32'h1234abcd),
-    .mem__mem_wstrb(strb)
+
+    .spi__cs(spi_cs),
+    .spi__clk(spi_clk),
+    .spi__do(spi_mosi),
+    .spi__di(spi_miso)
+  );
+
+  wire spi_cs;
+  wire spi_clk;
+  wire spi_mosi;
+  wire spi_miso;
+
+  SpiSlave spi_slave(
+      .cs(spi_cs),
+      .clk(spi_clk),
+      .mosi_(spi_mosi),
+      .miso_(spi_miso)
   );
 
   always @(posedge clock) begin
@@ -58,7 +70,7 @@ module Testbench();
         valid <= 0;
     end
 
-    if (counter == 32'd100000) begin
+    if (counter == 32'd1000000) begin
         $finish;
     end
   end
