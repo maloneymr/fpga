@@ -1,8 +1,8 @@
 set_io clock   35
 
-set_io leds__led0 41
-set_io leds__led1 40
-set_io leds__led2 39
+set_io led_red   39
+set_io led_blue  40
+set_io led_green 41
 
 set_io switch0 18
 set_io switch1 19

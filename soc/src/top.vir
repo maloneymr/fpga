@@ -10,11 +10,35 @@ union type Valid {
     Valid(payload : Word[8]);
 }
 
+fn led_color(leds : color::Color, is_trapped : Bit, counter : Word[22]) -> color::Color {
+    if is_trapped {
+        $color::Color { red = counter[21], blue = false, green = false }
+    } else {
+        leds
+    }
+}
+
 mod Top {
     incoming clock : Clock;
 
-    master socket leds of memory::Leds;
-    leds :=: memory_subsystem.leds;
+    outgoing led_red : Bit;
+    outgoing led_green : Bit;
+    outgoing led_blue : Bit;
+
+    reg led_counter : Word[22] on clock;
+    led_counter <=
+        if reset {
+            0
+        } else {
+            led_counter->inc()
+        };
+
+    wire led_color : color::Color;
+    led_color := led_color(memory_subsystem.leds, core.trap, led_counter);
+
+    led_red := led_color->red->not();
+    led_green := led_color->green->not();
+    led_blue := led_color->blue->not();
 
     mod resetter of resetter::Resetter;
     resetter.clock := clock;

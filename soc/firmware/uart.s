@@ -19,9 +19,9 @@ _start:
     lb t1, 0(t4)
     addi t4, t4, 1
 
-#    sw t1, 0(t2)
+    sw t1, 0(t2)
     sw t1, 0(gp)
-#    call wait
+    call wait
     j .loop
 
 wait:

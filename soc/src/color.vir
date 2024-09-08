@@ -1,0 +1,5 @@
+struct type Color {
+    red : Bit;
+    green : Bit;
+    blue : Bit;
+}

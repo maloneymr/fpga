@@ -11,5 +11,5 @@ yosys script.ys
 
 nextpnr-ice40 --up5k --json build/"$TOP.json" --pcf $PCF --asc "build/$TOP.asc" --package sg48
 icepack -s "build/$TOP.asc" "build/$TOP.bin"
-icesprog -o 0x100000 alice.txt
+#icesprog -o 0x100000 alice.txt
 icesprog "build/$TOP.bin"

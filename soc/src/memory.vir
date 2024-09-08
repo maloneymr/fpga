@@ -1,11 +1,7 @@
+import sram;
 import uart;
 import spi;
-
-socket Leds {
-    mosi led0 : Bit;
-    mosi led1 : Bit;
-    mosi led2 : Bit;
-}
+import color;
 
 socket Mem {
     mosi mem_valid : Bit;
@@ -44,9 +40,10 @@ mod MemorySubsystem {
     incoming clock : Clock;
     incoming reset : Bit;
 
+    outgoing leds : color::Color;
+
     slave  socket mem of Mem;
 
-    master socket leds of Leds;
     master socket spi of spi::Spi;
     master socket uart of uart::Uart;
 
@@ -71,7 +68,7 @@ mod MemorySubsystem {
     mem.mem_rdata :=
         match device {
             #spi => spi_flash.mem.read_data;
-            #uart => 
+            #uart =>
                 if uart_controller.recv.valid {
                     zext(uart_controller.recv.data)
                 } else {
@@ -102,9 +99,11 @@ mod MemorySubsystem {
             leds_reg
         };
 
-    leds.led0 := leds_reg[0];
-    leds.led1 := leds_reg[1];
-    leds.led2 := leds_reg[2];
+    leds := $color::Color {
+        red   = leds_reg[0],
+        green = leds_reg[1],
+        blue  = leds_reg[2],
+    };
 
     mod uart_controller of uart::UartController;
     uart_controller.clock := clock;
@@ -113,48 +112,14 @@ mod MemorySubsystem {
     uart_controller.send.valid := is_write->and(device == #uart[Device]);
     uart_controller.recv.ready := is_read->and(device == #uart[Device]);
     uart :=: uart_controller.uart;
-}
 
-ext mod SRam {
-    incoming clock : Clock;
-    incoming addr : Word[14];
-    incoming write_enable : Bit;
-    incoming write_mask : Word[4];
-    incoming data_inp : Word[16];
-    incoming data_out : Word[16];
-}
+    mod ram of sram::Ram;
+    ram.clock := clock;
+    ram.reset := reset;
 
-mod Aasdf {
-    incoming clock : Clock;
-    incoming reset : Bit;
-/*
-    incoming addr : Word[13];
-    incoming read_enable : Bit;
-    incoming write_enable : Bit;
-    incoming write_mask : Word[4];
-    incoming data_inp : Word[16];
-    incoming data_out : Word[16];
-
-    outgoing ready : Bit;
-
-    reg phase : Word[1] on clock;
-    phase <= if reset {
-            0
-        } else if read_enable->or(write_enable) {
-            phase->inc()
-        } else {
-            phase
-        };
-
-    mod sram of SRam;
-    sram.clock := clock;
-
-    sram.addr := word(addr, phase);
-    sram.write_enable := write_enable;
-    sram.write_mask := write_mask;
-    sram.data_inp := data_inp;
-    sram.data_out := data_out;
-
-    ready := phase == 1;
-*/
+    ram.addr := mem.mem_addr[14..0];
+    ram.data_inp := mem.mem_wdata;
+    ram.write_mask := mem.mem_wstrb;
+    ram.write_enable := mem.mem_valid->and(is_write);
+    ram.read_enable := mem.mem_valid->and(is_read);
 }
