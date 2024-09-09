@@ -12,24 +12,16 @@
 .equ BLUE, 0x4
 
 _start:
-    li sp, RAM
-    li t1, 0
+    li gp, UART
+    li t1, 'a'
 
 .loop:
     sw t1, 0(sp)
     lw t2, 0(sp)
 
-    li gp, UART
     sb t2, 0(gp)
-    srl t2, t2, 8
-    sb t2, 0(gp)
-    srl t2, t2, 8
-    sb t2, 0(gp)
-    srl t2, t2, 8
-    sb t2, 0(gp)
+    addi sp, sp, 0x4
 
-    call wait
-    addi t1, t1, 1
     j .loop
 
 #    sb zero, 0(gp)

@@ -123,12 +123,6 @@ mod MemorySubsystem {
     ram.addr := mem.mem_addr[14..0];
     ram.data_inp := mem.mem_wdata;
     ram.write_mask := mem.mem_wstrb;
-    ram.write_enable := mem.mem_valid->and(is_write);
-    ram.read_enable := mem.mem_valid->and(is_read);
-
-//    leds := $color::Color {
-//        red   = mem.mem_valid->and(is_read)->and(mem.mem_instr->not()),
-//        green = mem.mem_valid->and(is_write)->and(mem.mem_instr->not()),
-//        blue  = false,
-//    };
+    ram.write_enable := mem.mem_valid->and(is_write)->and(device == #ram[Device]);
+    ram.read_enable := mem.mem_valid->and(is_read)->and(device == #ram[Device]);
 }
