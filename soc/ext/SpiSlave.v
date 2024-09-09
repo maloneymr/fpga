@@ -47,7 +47,7 @@ module SpiSlave(
     end
 
     initial begin
-        $readmemh("flash.hex", mem);
+        $readmemh("build/flash.hex", mem);
     end
 
 endmodule
