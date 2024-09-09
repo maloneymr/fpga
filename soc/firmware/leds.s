@@ -16,7 +16,6 @@ _start:
     li t2, LEDS
 
     li t1, RED
-    ebreak
     sb t1, 0(t2)
 
     j halt

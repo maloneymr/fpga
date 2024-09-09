@@ -4,7 +4,7 @@ PCF=icesugar.pcf
 
 set -ex
 
-rm -rf build/
+#rm -rf build/
 vir compile "$SOURCE_DIR/$TOP.vir"
 echo "read_verilog -I .. build/*.v; synth_ice40 -top Top -json build/$TOP.json" > script.ys
 yosys -l build/yosys.log script.ys
